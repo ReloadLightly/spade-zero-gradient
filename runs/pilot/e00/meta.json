@@ -1,0 +1,7 @@
+{
+  "concept": "House-Matching Potion Deduction \u2014 the solver must infer a hidden 3-House partition (2 ingredients per House) of 6 ingredients from pairwise stability probes, where only 3 of 15 possible pairs are secretly \"unstable,\" then commit to a single verified compatible trio, with failed brews leaking diagnostic feedback about which pair broke it.",
+  "hint": "Each House holds exactly two ingredients, so once you learn that a pair is unstable, both of those letters are now fully \"used up\" \u2014 every other letter is automatically safe with each of them, no further testing needed there. Since only 3 of the 15 possible pairs are unstable, most probes will come back stable, so prioritize testing letters you haven't touched yet over re-confirming ones you already trust. Track which letters have never appeared in any unstable result \u2014 three such letters (one still-unpaired representative per House) are enough to brew safely, so build toward that trio deliberately rather than guessing early.",
+  "skill": "logical_deduction",
+  "topic": "potion-mixing rules inferred from allowed combinations",
+  "t": "2026-08-25T20:36:56+0000"
+}

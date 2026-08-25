@@ -1,0 +1,41 @@
+{
+  "win_nohint": 1.0,
+  "win_hint": 1.0,
+  "mean_nohint": 1.0,
+  "mean_hint": 1.0,
+  "floored_regret": 0.0,
+  "valid_for_fitness": false,
+  "issues": [
+    "V3: no-hint win rate 1.00 outside [0.05, 0.95]"
+  ],
+  "episodes": [
+    {
+      "arm": "nohint",
+      "seed": 0,
+      "return": 1.0,
+      "steps": 4,
+      "ended": "terminated"
+    },
+    {
+      "arm": "nohint",
+      "seed": 1,
+      "return": 1.0,
+      "steps": 5,
+      "ended": "terminated"
+    },
+    {
+      "arm": "hint",
+      "seed": 0,
+      "return": 1.0,
+      "steps": 7,
+      "ended": "terminated"
+    },
+    {
+      "arm": "hint",
+      "seed": 1,
+      "return": 1.0,
+      "steps": 4,
+      "ended": "terminated"
+    }
+  ]
+}

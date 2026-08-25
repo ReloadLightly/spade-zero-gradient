@@ -1,0 +1,7 @@
+{
+  "concept": "MissingTrainEnv \u2014 the solver must reconcile a printed timetable against independent station sensor logs to identify one real train's origin, direction, and departure time that was silently dropped from the timetable; the challenge is that no single observation names the anomaly, it must be triangulated from arithmetic residues across multiple station queries.",
+  "hint": "Query stations far apart first; any recorded time not matching a printed train's arithmetic (origin_time \u00b1 distance) is the missing train's fingerprint. Two such residues at different stations reveal its speed and direction by their difference over distance, and the boundary station where residues stop appearing pins the origin. You rarely need to log every station \u2014 two or three well-chosen ones triangulate the answer.",
+  "skill": "logical_deduction",
+  "topic": "train timetable contradictions revealing a missing train",
+  "t": "2026-08-25T20:39:24+0000"
+}
