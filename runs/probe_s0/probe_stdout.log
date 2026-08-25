@@ -3,3 +3,4 @@
 [3/10] Fog-of-War Courier Routing — a 5-stop Manhattan-distance del valid=True regret=0.0
 [4/10] House-Drink Link Deduction — 3 houses hide independent pet a valid=False regret=0.0
 [5/10] Conjunction Cipher — solver must decode two planets' hidden  valid=False regret=0.5
+[6/10] Scouted Knapsack — costs are public but each project's true  valid=True regret=0.0295
