@@ -1,2 +1,3 @@
 [1/10] Treasure Grid — deduce a hidden (row, col) cell on an 8x8 pi valid=True regret=0.0833
 [2/10] Hidden-order run-length cipher — solver must infer whether t valid=False regret=0.2
+[3/10] Fog-of-War Courier Routing — a 5-stop Manhattan-distance del valid=True regret=0.0
