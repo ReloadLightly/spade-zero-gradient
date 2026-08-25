@@ -108,6 +108,44 @@ that has learned to write erratic ones. Logging raw regret alongside the
 floored value would make it visible at zero cost to the registered fitness,
 since selection would continue to use the floored figure.
 
+### 2c. Update at n=8 (supersedes the n=6 reading above)
+
+    id   mean_nh  mean_h   raw_regret  floored
+    e00  0.9167   1.0000    0.0833     0.0833
+    e01  0.4000   0.6000    0.2000     0.2000
+    e02  0.9444   0.7438   -0.2006     0.0000   HARM
+    e03  1.0000   0.2222   -0.7778     0.0000   HARM
+    e04  0.0000   0.5000    0.5000     0.5000
+    e05  0.9343   0.9638    0.0295     0.0295
+    e06  0.4333   0.3000   -0.1333     0.0000   HARM
+    e07  0.5000   0.3000   -0.2000     0.0000   HARM
+
+    raw:     mean -0.0624  median -0.0519  helped 4, harmed 4
+    floored: mean +0.1016  median +0.0147
+
+At n=6 this note said the median raw regret was positive and that the
+negative mean was an e03 artifact. At n=8 the median is negative and the
+split is exactly 4 helped / 4 harmed. That reading needs qualifying rather
+than simply reversing:
+
+  - The MEAN is still e03-driven. Excluding e03 it returns to +0.0398, so
+    "hints are net-harmful in magnitude" remains unsupported.
+  - The MEDIAN sign is not robust either: excluding e03 it returns to
+    +0.0295.
+  - What IS robust, and does not depend on e03, is the COUNT. Four of eight
+    hints helped and four harmed. S0's hints are a coin flip.
+
+The coin-flip result is the finding, and it is stronger than the magnitude
+claim I first reached for. It also sharpens section 2b: floored regret
+discards the entire harmed half of the distribution. Selection sees the
+mean of the positive part (+0.1016) from a process whose actual central
+tendency is indistinguishable from zero.
+
+For Phase A this bears directly on the research question. If C1/C2 fitness
+rises, the rise could come from writing genuinely better hints OR from
+writing hints that fail less catastrophically -- and floored regret cannot
+separate those. Logging raw regret alongside would.
+
 ## 3. Proposed amendment (NOT applied — needs sign-off)
 
 Smallest compliant change: have V3 band the same quantity fitness uses.

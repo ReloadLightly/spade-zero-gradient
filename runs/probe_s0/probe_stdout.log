@@ -5,3 +5,4 @@
 [5/10] Conjunction Cipher — solver must decode two planets' hidden  valid=False regret=0.5
 [6/10] Scouted Knapsack — costs are public but each project's true  valid=True regret=0.0295
 [7/10] Treasure Map Triangulation — deduce a hidden grid cell from  valid=False regret=0.0
+[8/10] Symmetry-Rule Inference — a hidden transformation (one of 5  valid=False regret=0.0
