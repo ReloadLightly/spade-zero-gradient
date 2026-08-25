@@ -77,6 +77,37 @@ negative raw regret and are recorded as 0.0000, so the fitness signal cannot
 distinguish "hint was useless" from "hint was actively harmful". Under D-02
 that distinction is invisible to selection.
 
+## 2b. Quantifying what the floor hides (added, first 6 envs)
+
+    id   mean_nh  mean_h   raw_regret  floored
+    e00  0.9167   1.0000    0.0833     0.0833
+    e01  0.4000   0.6000    0.2000     0.2000
+    e02  0.9444   0.7438   -0.2006     0.0000   HARM
+    e03  1.0000   0.2222   -0.7778     0.0000   HARM
+    e04  0.0000   0.5000    0.5000     0.5000
+    e05  0.9343   0.9638    0.0295     0.0295
+
+    mean raw regret (unfloored): -0.0276
+    mean floored regret:         +0.1355
+
+The hint harms the solver in 2 of 6 envs, by 0.20 and 0.78. Flooring erases
+both, turning a slightly negative mean into a solidly positive one.
+
+Read the mean carefully: -0.0276 is dominated by e03's -0.7778, and at n=6
+one catastrophic env moves it. The median raw regret is positive (~+0.06).
+The defensible claim is NOT "S0 hints are net-harmful on average" -- n is
+far too small. It is narrower and still consequential:
+
+  the fitness measure reports only the positive part, so a designer whose
+  hints help a little on some envs and hurt badly on others scores the same
+  as one whose hints simply help a little everywhere.
+
+Under D-02 that difference is invisible to selection, and it is exactly the
+difference between a designer that has learned to write useful hints and one
+that has learned to write erratic ones. Logging raw regret alongside the
+floored value would make it visible at zero cost to the registered fitness,
+since selection would continue to use the floored figure.
+
 ## 3. Proposed amendment (NOT applied — needs sign-off)
 
 Smallest compliant change: have V3 band the same quantity fitness uses.
