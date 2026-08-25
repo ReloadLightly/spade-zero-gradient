@@ -7,3 +7,26 @@
 [7/10] Treasure Map Triangulation — deduce a hidden grid cell from  valid=False regret=0.0
 [8/10] Symmetry-Rule Inference — a hidden transformation (one of 5  valid=False regret=0.0
 [9/10] Portfolio Budget — 0/1-knapsack selection where costs are pu valid=False regret=None
+[10/10] Sealed-Room Wiring — a hidden bijection between 4 control-ro valid=False regret=0.3333
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 318, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 314, in main
+    return args.fn(args)
+           ^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 223, in cmd_probe
+    score = score_round(records)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/fitness.py", line 56, in score_round
+    learnable_fraction=(sum(1 for r in env_records if is_learnable(r.get("win_nohint", -1))) / n) if n else 0.0,
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/fitness.py", line 56, in <genexpr>
+    learnable_fraction=(sum(1 for r in env_records if is_learnable(r.get("win_nohint", -1))) / n) if n else 0.0,
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/gates.py", line 74, in is_learnable
+    return LEARNABLE_LO <= win_nohint <= LEARNABLE_HI
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: '<=' not supported between instances of 'float' and 'NoneType'

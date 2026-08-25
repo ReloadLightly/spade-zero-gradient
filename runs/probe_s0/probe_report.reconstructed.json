@@ -1,0 +1,20 @@
+{
+  "R1_interface": {
+    "pass": false,
+    "valid": "3/10"
+  },
+  "R2_spread": {
+    "pass": false,
+    "spread": 0.083
+  },
+  "R3_headroom": {
+    "pass": true,
+    "note": "baseline must not already saturate",
+    "S0_fitness": 0.0376,
+    "learnable_fraction": 0.3
+  },
+  "backend_calls": 201,
+  "_reconstructed_offline": true,
+  "_reason": "cmd_probe crashed in fitness.score_round (TypeError on None win_nohint) before writing probe_report.json; recomputed from envs.jsonl/episodes.jsonl with the -1 sentinel semantics the code intended",
+  "_backend_calls_note": "solver calls counted as episode steps (191) + one designer call per env (10); ClaudeCLIBackend retries are not logged, so this is a lower bound"
+}
