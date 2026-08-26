@@ -3,3 +3,4 @@
 [3/10] Bracket Seeding Under a Scouting Budget — pair 8 teams with  valid=True regret=0.0
 [4/10] Sealed-Room Switch Wiring — deduce a hidden bijection betwee valid=True regret=0.0
 [5/10] Hidden radius-1 circular elementary cellular automaton — sol valid=True regret=0.0
+[6/10] GardenHoseEnv — cover a known set of thirsty plots on a 14-c valid=False regret=0.0
