@@ -5,3 +5,4 @@
 [5/10] Hidden radius-1 circular elementary cellular automaton — sol valid=True regret=0.0
 [6/10] GardenHoseEnv — cover a known set of thirsty plots on a 14-c valid=False regret=0.0
 [7/10] Family Web — solver must query relatives' local records (par valid=True regret=0.2
+[8/10] Hidden festival cycle (period 3–7, unknown offset) revealed  valid=True regret=0.0
