@@ -1,0 +1,4 @@
+2.1.246 (Claude Code)
+Python 3.11.15
+2026-08-26T03:30:31+0000
+amended gate A2: V3 bands mean_nohint; rng-seed 1000
