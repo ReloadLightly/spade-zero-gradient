@@ -1,0 +1,5 @@
+2.1.246 (Claude Code)
+Python 3.11.15
+2026-08-26T10:57:43+0000
+D-04: G=3, 6 envs/round, 6 rounds, single chain
+seed policy: --rng-seed = 2000 + round_index, IDENTICAL across conditions (paired design, PREREG SS2)
