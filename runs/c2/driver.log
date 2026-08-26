@@ -11,3 +11,15 @@ mutated S0 -> S1
 }
 === C2 round 0 done 12:54:56 ===
 === C2 round 1 (seed 2001) start 12:54:56 ===
+mutated S0 -> S2
+{
+  "condition": "C2",
+  "round": 1,
+  "strategy": "S0",
+  "fitness": 0.0995,
+  "valid": "6/6",
+  "learnable_fraction": 0.5,
+  "backend_calls": 119
+}
+=== C2 round 1 done 14:07:34 ===
+=== C2 round 2 (seed 2002) start 14:07:34 ===
