@@ -7,3 +7,21 @@
 [7/10] Family Web — solver must query relatives' local records (par valid=True regret=0.2
 [8/10] Hidden festival cycle (period 3–7, unknown offset) revealed  valid=True regret=0.0
 [9/10] Hidden-changeover line sequencing — the solver must probe an valid=False regret=0.0044
+[10/10] Lock-note reconstruction — deduce a 4-digit (repeats allowed valid=False regret=0.0
+{
+  "R1_interface": {
+    "pass": true,
+    "valid": "6/10"
+  },
+  "R2_spread": {
+    "pass": true,
+    "spread": 0.2
+  },
+  "R3_headroom": {
+    "pass": true,
+    "note": "baseline must not already saturate",
+    "S0_fitness": 0.0333,
+    "learnable_fraction": 0.6
+  },
+  "backend_calls": 222
+}

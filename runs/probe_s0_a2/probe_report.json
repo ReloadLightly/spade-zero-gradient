@@ -1,0 +1,17 @@
+{
+  "R1_interface": {
+    "pass": true,
+    "valid": "6/10"
+  },
+  "R2_spread": {
+    "pass": true,
+    "spread": 0.2
+  },
+  "R3_headroom": {
+    "pass": true,
+    "note": "baseline must not already saturate",
+    "S0_fitness": 0.0333,
+    "learnable_fraction": 0.6
+  },
+  "backend_calls": 222
+}
