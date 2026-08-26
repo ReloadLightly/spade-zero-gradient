@@ -19,6 +19,20 @@ from .gates import is_learnable
 MIN_VALID = 2
 
 
+def _win_nohint(rec: dict):
+    """No-hint win rate of an env record, or None if it has none.
+
+    A1 (approved 2026-08-26, bug fix, no semantic change): an env rejected by
+    V1/V2 never reaches evaluation, and its record carries the key
+    ``win_nohint`` with value ``None`` rather than omitting it. A plain
+    ``rec.get("win_nohint", -1)`` therefore returns None instead of the
+    sentinel and the comparison in is_learnable() raises TypeError, killing
+    aggregation for the whole round. Missing and None are the same condition
+    — the env was never measured — and both are handled here.
+    """
+    return rec.get("win_nohint")
+
+
 @dataclass
 class RoundScore:
     fitness: float
@@ -53,8 +67,10 @@ def score_round(env_records: list[dict]) -> RoundScore:
         n_envs=n,
         n_valid=len(valid),
         invalid_round=invalid_round,
-        learnable_fraction=(sum(1 for r in env_records if is_learnable(r.get("win_nohint", -1))) / n) if n else 0.0,
-        mean_win_nohint=(sum(r.get("win_nohint", 0.0) for r in env_records) / n) if n else 0.0,
+        learnable_fraction=(sum(1 for r in env_records
+                                if _win_nohint(r) is not None
+                                and is_learnable(_win_nohint(r))) / n) if n else 0.0,
+        mean_win_nohint=(sum((_win_nohint(r) or 0.0) for r in env_records) / n) if n else 0.0,
         diversity=round(diversity_proxy([r.get("code", "") for r in env_records]), 4),
         per_env=[{k: r.get(k) for k in
                   ("env_id", "skill", "concept", "win_nohint", "win_hint",

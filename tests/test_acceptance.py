@@ -84,12 +84,31 @@ def test_hint_gate_rejects_action_injection():
 
 
 def test_band_gate_excludes_password_env():
+    """A2 (2026-08-26): V3 bands on mean_nohint, not win_nohint."""
     rep = pre_eval_gates(GOOD_ENV, "A fine strategic hint about halving intervals.")
-    rep = apply_band_gate(rep, win_nohint=0.0)   # unsolvable without hint
+    rep = apply_band_gate(rep, mean_nohint=0.0)   # nothing without the hint
     assert not rep.valid_for_fitness
     rep2 = pre_eval_gates(GOOD_ENV, "A fine strategic hint about halving intervals.")
-    rep2 = apply_band_gate(rep2, win_nohint=0.5)
+    rep2 = apply_band_gate(rep2, mean_nohint=0.5)
     assert rep2.valid_for_fitness
+
+
+def test_band_gate_admits_partial_credit_env():
+    """The case A2 exists for: real partial-credit progress, no full solve.
+
+    Under the pre-A2 win-rate band this env was excluded (win_nohint 0.0)
+    even though the solver plainly made cold progress (mean 0.4). Probe
+    env e01 on 2026-08-25 was exactly this.
+    """
+    rep = pre_eval_gates(GOOD_ENV, "A fine strategic hint about halving intervals.")
+    rep = apply_band_gate(rep, mean_nohint=0.4)
+    assert rep.valid_for_fitness
+
+
+def test_band_gate_still_excludes_trivial_env():
+    rep = pre_eval_gates(GOOD_ENV, "A fine strategic hint about halving intervals.")
+    rep = apply_band_gate(rep, mean_nohint=1.0)   # solved cold
+    assert not rep.valid_for_fitness
 
 
 # ---------- runner + regret ----------
@@ -124,6 +143,35 @@ def test_score_round_math_and_invalid_round():
     assert score.n_valid == 2 and not score.invalid_round
     bad = score_round([_rec(0.9, 0.0, valid=False), _rec(0.8, 1.0, valid=False)])
     assert bad.invalid_round and bad.fitness == 0.0
+
+
+def test_score_round_tolerates_pre_eval_rejected_env():
+    """A1 regression (2026-08-26): a V1/V2-rejected env must not kill the round.
+
+    cmd_probe writes ``win_nohint=None`` for an env rejected before
+    evaluation. Before A1 the -1 sentinel in score_round never applied to a
+    present-but-None key, so is_learnable() raised TypeError and the whole
+    round lost its report after every model call had been paid for. This
+    happened for real on probe env e08 (650-char hint, V2 rejection).
+    """
+    rejected = {"env_id": "e08", "stage": "gates", "valid_for_fitness": False,
+                "gate_issues": ["V2: hint exceeds 600 chars"], "win_nohint": None,
+                "code": "a b c d e f g"}
+    score = score_round([_rec(0.4, 0.5), _rec(0.2, 0.3), rejected])
+    assert score.n_envs == 3
+    assert score.n_valid == 2 and not score.invalid_round
+    assert score.fitness == pytest.approx(0.3)
+    # the unevaluated env counts as not-learnable, never as learnable
+    assert score.learnable_fraction == pytest.approx(2 / 3)
+    json.dumps(score.per_env)
+
+
+def test_score_round_tolerates_absent_win_nohint():
+    """The missing-key path A1's sentinel was originally written for."""
+    absent = {"env_id": "e99", "valid_for_fitness": False, "code": "a b c"}
+    score = score_round([_rec(0.4, 0.5), _rec(0.2, 0.3), absent])
+    assert score.n_valid == 2
+    assert score.learnable_fraction == pytest.approx(2 / 3)
 
 
 def test_diversity_proxy_bounds():

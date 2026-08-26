@@ -73,12 +73,15 @@ def run_env_cycle(backend, designer_model: str, solver_model: str,
 
     ev = evaluate_env(design.code, design.hint, backend, solver_model,
                       G=G, seed0=seed0)
-    gates = apply_band_gate(gates, ev.win_nohint)
+    gates = apply_band_gate(gates, ev.mean_nohint)   # A2 2026-08-26
     record.update(
         stage="evaluated",
         win_nohint=round(ev.win_nohint, 4), win_hint=round(ev.win_hint, 4),
         mean_nohint=round(ev.mean_nohint, 4), mean_hint=round(ev.mean_hint, 4),
         floored_regret=round(ev.floored_regret, 4),
+        # A2 descriptive (2026-08-26): raw gap, negative when the hint HARMS
+        # the solver. Never selected on; flooring remains the selective rule.
+        raw_regret=round(ev.mean_hint - ev.mean_nohint, 4),
         valid_for_fitness=gates.valid_for_fitness,
         gate_issues=gates.issues,
         episode_meta=[{"arm": arm, "seed": seed, "return": r.return_,
@@ -182,10 +185,11 @@ def cmd_eval_env(args) -> int:
     hint = args.hint or meta.get("hint", "")
     ev = evaluate_env(code, hint, backend, args.solver_model, G=args.G,
                       seed0=args.rng_seed)
-    gates = apply_band_gate(pre_eval_gates(code, hint), ev.win_nohint)
+    gates = apply_band_gate(pre_eval_gates(code, hint), ev.mean_nohint)  # A2
     result = {"win_nohint": ev.win_nohint, "win_hint": ev.win_hint,
               "mean_nohint": ev.mean_nohint, "mean_hint": ev.mean_hint,
               "floored_regret": ev.floored_regret,
+              "raw_regret": round(ev.mean_hint - ev.mean_nohint, 4),   # A2
               "valid_for_fitness": gates.valid_for_fitness,
               "issues": gates.issues,
               "episodes": [{"arm": a, "seed": s, "return": r.return_,

@@ -6,9 +6,16 @@ validity gates, not by reward blending:
 
   V1  executability battery passes (env_api.run_battery)
   V2  hint legality: <= 600 chars, no 'ACTION:' line, no fenced code
-  V3  fitness eligibility band: no-hint win rate in [0.05, 0.95]
+  V3  fitness eligibility band: no-hint MEAN RETURN in [0.05, 0.95]
       (an env unsolvable without the hint, or trivially solved, contributes
       no fitness — it is logged but excluded)
+
+A2 (approved 2026-08-26): the band applies to mean_nohint, not win_nohint.
+The eligibility variable now matches the fitness variable — both are mean
+returns — so an env can no longer be excluded for lacking full solves while
+carrying real partial-credit regret. The password-environment guard is
+preserved: mean_nohint ~ 0 still means "nothing without the hint" and is
+still excluded. Win rates remain as descriptives.
 
 Gates are not fitness. They never add reward; they only decide eligibility.
 """
@@ -61,11 +68,12 @@ def pre_eval_gates(code: str, hint: str) -> GateReport:
     )
 
 
-def apply_band_gate(report: GateReport, win_nohint: float) -> GateReport:
-    report.v3_band = BAND_LO <= win_nohint <= BAND_HI
+def apply_band_gate(report: GateReport, mean_nohint: float) -> GateReport:
+    """Apply V3 to the no-hint MEAN RETURN (A2, 2026-08-26)."""
+    report.v3_band = BAND_LO <= mean_nohint <= BAND_HI
     if not report.v3_band:
         report.issues.append(
-            f"V3: no-hint win rate {win_nohint:.2f} outside [{BAND_LO}, {BAND_HI}]")
+            f"V3: no-hint mean return {mean_nohint:.2f} outside [{BAND_LO}, {BAND_HI}]")
     return report
 
 
