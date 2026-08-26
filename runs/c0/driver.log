@@ -10,3 +10,14 @@
 }
 === C0 round 0 done 12:22:50 ===
 === C0 round 1 (seed 2001) start 12:22:50 ===
+{
+  "condition": "C0",
+  "round": 1,
+  "strategy": "S0",
+  "fitness": 0.0,
+  "valid": "2/6",
+  "learnable_fraction": 0.16666666666666666,
+  "backend_calls": 194
+}
+=== C0 round 1 done 13:46:19 ===
+=== C0 round 2 (seed 2002) start 13:46:19 ===
