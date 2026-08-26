@@ -1,1 +1,12 @@
 === C0 round 0 (seed 2000) start 10:57:51 ===
+{
+  "condition": "C0",
+  "round": 0,
+  "strategy": "S0",
+  "fitness": 0.1222,
+  "valid": "3/6",
+  "learnable_fraction": 0.5,
+  "backend_calls": 170
+}
+=== C0 round 0 done 12:22:50 ===
+=== C0 round 1 (seed 2001) start 12:22:50 ===
