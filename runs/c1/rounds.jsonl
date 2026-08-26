@@ -1,1 +1,2 @@
 {"t": "2026-08-26T12:14:02+0000", "condition": "C1", "round_index": 0, "strategy_id": "S0", "fitness": 0.1093, "n_valid": 4, "n_envs": 6, "invalid_round": false, "learnable_fraction": 0.5, "mean_win_nohint": 0.5000166666666667, "diversity": 0.8486, "backend_calls": 196}
+{"t": "2026-08-26T14:11:45+0000", "condition": "C1", "round_index": 1, "strategy_id": "S0", "fitness": 0.1067, "n_valid": 5, "n_envs": 6, "invalid_round": false, "learnable_fraction": 0.6666666666666666, "mean_win_nohint": 0.5555666666666667, "diversity": 0.8627, "backend_calls": 207}
