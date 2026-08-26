@@ -1,6 +1,5 @@
 2.1.246 (Claude Code)
 Python 3.11.15
-2026-08-26T11:31:09+0000
+2026-08-26T10:57:43+0000
 D-04: G=3, 6 envs/round, 6 rounds, single chain
 seed policy: --rng-seed = 2000 + round_index, IDENTICAL across conditions (paired design, PREREG SS2)
-NOTE: round 0 re-run after evolve.py render_feedback crash; aborted attempt preserved in runs/_aborted/c2_round0_crashed

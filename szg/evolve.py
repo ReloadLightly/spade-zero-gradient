@@ -98,6 +98,21 @@ class StrategyArchive:
         return max(self.strategies.values(), key=lambda s: s.mean_fitness)
 
 
+def _num(rec: dict, key: str, default: float = 0.0) -> float:
+    """Numeric field of an env record, tolerating a present-but-None value.
+
+    Same defect A1 fixed in fitness.py (2026-08-26): an env rejected by V1/V2
+    never reaches evaluation and its record carries these keys with value
+    None, so ``rec.get(key, 0)`` returns None and the ``:.2f`` format below
+    raises TypeError. This killed C2 round 0 of the main grid at the mutate
+    step, after the round had already been scored and logged. evolve.py is
+    not a frozen file, so this is a plain bug fix; the record still shows the
+    unevaluated env, now as 0.00 with its gate issues appended.
+    """
+    v = rec.get(key)
+    return default if v is None else v
+
+
 def render_feedback(round_score, env_records: list[dict], max_envs: int = 8) -> str:
     lines = [
         f"strategy fitness this round: {round_score.fitness:.3f} "
@@ -110,8 +125,8 @@ def render_feedback(round_score, env_records: list[dict], max_envs: int = 8) -> 
     ]
     for r in env_records[:max_envs]:
         lines.append(
-            f"- [{r.get('skill')}] {r.get('concept')} | no-hint {r.get('win_nohint', 0):.2f} "
-            f"hint {r.get('win_hint', 0):.2f} regret {r.get('floored_regret', 0):.2f}"
+            f"- [{r.get('skill')}] {r.get('concept')} | no-hint {_num(r, 'win_nohint'):.2f} "
+            f"hint {_num(r, 'win_hint'):.2f} regret {_num(r, 'floored_regret'):.2f}"
             + ("" if r.get("valid_for_fitness") else
                f" | INVALID: {'; '.join(r.get('gate_issues', ['?'])[:2])}"))
     return "\n".join(lines)

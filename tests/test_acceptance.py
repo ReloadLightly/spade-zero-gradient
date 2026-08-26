@@ -209,6 +209,26 @@ def test_strategy_archive_persist_and_mutate(tmp_path):
     assert arch2.best().id == "S0"                   # only S0 has measured fitness
 
 
+def test_render_feedback_tolerates_pre_eval_rejected_env():
+    """Regression: the A1 defect also lived in evolve.render_feedback.
+
+    It killed C2 round 0 of the main grid on 2026-08-26 at the mutate step,
+    AFTER the round had been scored and written -- so the round data survived
+    but the strategy never evolved. A rejected env carries win_nohint /
+    win_hint / floored_regret as None, and ``rec.get(key, 0):.2f`` formats
+    None rather than the default.
+    """
+    from szg.evolve import render_feedback
+    rejected = {"env_id": "e03", "skill": "optimization", "concept": "broken env",
+                "stage": "gates", "valid_for_fitness": False,
+                "win_nohint": None, "win_hint": None, "floored_regret": None,
+                "gate_issues": ["V2: hint exceeds 600 chars"]}
+    score = score_round([_rec(0.4, 0.5), _rec(0.2, 0.3), rejected])
+    text = render_feedback(score, [_rec(0.4, 0.5), rejected])
+    assert "no-hint 0.00" in text
+    assert "V2: hint exceeds 600 chars" in text
+
+
 def test_round_log_is_json_serializable(tmp_path):
     score = score_round([_rec(0.4, 0.5)])
     json.dumps(score.per_env)

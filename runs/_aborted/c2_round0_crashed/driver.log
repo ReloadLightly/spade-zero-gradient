@@ -1,0 +1,17 @@
+=== C2 round 0 (seed 2000) start 10:57:51 ===
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 322, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 318, in main
+    return args.fn(args)
+           ^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 149, in cmd_round
+    render_feedback(score, records), child_id)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/evolve.py", line 113, in render_feedback
+    f"- [{r.get('skill')}] {r.get('concept')} | no-hint {r.get('win_nohint', 0):.2f} "
+TypeError: unsupported format string passed to NoneType.__format__
+=== C2 round 0 FAILED rc=1 ===
