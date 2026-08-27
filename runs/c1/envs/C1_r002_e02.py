@@ -1,135 +1,148 @@
-import itertools
-import random
+import re
 
 
-class CaravanAssignmentEnv:
-    TERRAINS = ("dune", "rock", "salt")
+class SaltRoadRelayEnv:
+    MAX_STEPS = 10
+    LEG_REWARD = 0.1
+    BONUS = 0.6
+
+    def __init__(self):
+        self.rng = None
 
     def reset(self, seed=None):
-        self.rng = random.Random(seed)
-        self.n = 3
-        self.team_affinity = [self.rng.choice(self.TERRAINS) for _ in range(self.n)]
-        self.leg_terrain = [self.rng.choice(self.TERRAINS) for _ in range(self.n)]
+        self.rng = __import__("random").Random(seed)
+        self.capacity = self.rng.randint(8, 10)
+        legs = [self.rng.randint(2, 5) for _ in range(4)]
+        while sum(legs) <= self.capacity:
+            idx = self.rng.randrange(4)
+            if legs[idx] < min(6, self.capacity):
+                legs[idx] += 1
+        self.legs = legs
+        self.prices = [0, self.rng.randint(1, 6), self.rng.randint(1, 6), self.rng.randint(1, 6)]
+        self.known = [True, False, False, False]
+        self.optimal_cost = self._solve_optimal()
 
-        self.cost = [[0] * self.n for _ in range(self.n)]
-        for i in range(self.n):
-            for j in range(self.n):
-                base = self.rng.randint(4, 14)
-                if self.team_affinity[i] == self.leg_terrain[j]:
-                    base = max(2, base - self.rng.randint(3, 5))
-                self.cost[i][j] = base
-
-        self.scout_budget = 5
-        self.scouts_used = 0
-        self.steps = 0
-        self.max_steps = 10
+        self.stock = 0
+        self.spent = 0
+        self.wp_index = 0
+        self.steps_used = 0
         self.done = False
 
-        perm_costs = [
-            sum(self.cost[i][perm[i]] for i in range(self.n))
-            for perm in itertools.permutations(range(self.n))
-        ]
-        self.optimal_cost = min(perm_costs)
-        self.worst_cost = max(perm_costs)
-        self.naive_cost = sum(self.cost[i][i] for i in range(self.n))
-
-        obs = self._render_intro()
+        obs = (
+            "SALT ROAD RELAY. Guide a caravan from Oasis W0 through W1, W2, W3 to the "
+            "final Oasis W4, buying water along the way. Carrying capacity: "
+            f"{self.capacity} units (never exceed it). The four legs cost exactly "
+            f"{self.legs[0]}, {self.legs[1]}, {self.legs[2]}, {self.legs[3]} water to "
+            "cross, in order; if your stock would go negative crossing a leg, the run fails.\n"
+            f"W0's water is free. W1 is tagged {self._tag(1)}, W2 is tagged {self._tag(2)}, "
+            f"W3 is tagged {self._tag(3)} (cheap=1-2/unit, moderate=3-4, pricey=5-6) but exact "
+            "prices are hidden until inspected.\n"
+            "At each waypoint you may act once, then you automatically move to the next: "
+            "'inspect' reveals the exact price here (no cost); 'buy N' purchases N units at "
+            "this waypoint's price (N=0 allowed) and advances you to the next waypoint, "
+            f"consuming that leg's water cost. You have {self.MAX_STEPS} total actions."
+        )
         return obs, {}
 
-    def _render_intro(self):
-        lines = []
-        lines.append(
-            "CARAVAN DISPATCH: assign 3 camel teams to 3 desert legs (a one-to-one "
-            "pairing) to minimize TOTAL fatigue cost. You have at most 10 actions total."
-        )
-        lines.append(
-            "Exact pairing costs are hidden. You may spend up to 5 scouting actions "
-            "to reveal exact costs before making one final, irreversible assignment."
-        )
-        lines.append("ACTIONS:")
-        lines.append(
-            "  'SCOUT <team> <leg>' — team and leg are each 1-3; reveals the exact "
-            "fatigue cost of pairing that team with that leg (uses one of 5 scouts)."
-        )
-        lines.append(
-            "  'ASSIGN <leg1> <leg2> <leg3>' — leg for team 1, team 2, team 3 "
-            "respectively, must be a permutation of 1,2,3. Ends the episode."
-        )
-        lines.append("Public terrain info (affinity-matched pairs tend cheaper, but not always):")
-        for i in range(self.n):
-            lines.append(f"  Team {i + 1} favors {self.team_affinity[i]} terrain.")
-        for j in range(self.n):
-            lines.append(f"  Leg {j + 1} crosses {self.leg_terrain[j]} terrain.")
-        lines.append(f"Scouts remaining: {self.scout_budget - self.scouts_used}. Steps used: {self.steps}/{self.max_steps}.")
-        return "\n".join(lines)
+    def _tag(self, i):
+        p = self.prices[i]
+        return "cheap" if p <= 2 else ("moderate" if p <= 4 else "pricey")
 
-    def _status_line(self):
-        return (
-            f"Scouts remaining: {self.scout_budget - self.scouts_used}. "
-            f"Steps used: {self.steps}/{self.max_steps}."
-        )
+    def _solve_optimal(self):
+        dp = {0: 0}
+        for i in range(4):
+            price = self.prices[i]
+            after_buy = {}
+            for w, cost in dp.items():
+                for wprime in range(w, self.capacity + 1):
+                    c = cost + price * (wprime - w)
+                    if wprime not in after_buy or c < after_buy[wprime]:
+                        after_buy[wprime] = c
+            leg = self.legs[i]
+            after_leg = {}
+            for w, cost in after_buy.items():
+                rem = w - leg
+                if rem >= 0 and (rem not in after_leg or cost < after_leg[rem]):
+                    after_leg[rem] = cost
+            dp = after_leg
+        return min(dp.values())
 
     def step(self, action):
         if self.done:
-            return self._status_line(), 0.0, True, False, {}
+            return "Episode already finished.", 0.0, True, False, {}
 
-        self.steps += 1
-        text = (action or "").strip()
-        parts = text.split()
-        reward = 0.0
-        terminated = False
+        self.steps_used += 1
+        text = (action or "").strip().lower()
 
-        if parts and parts[0].upper() == "SCOUT" and len(parts) == 3:
-            try:
-                t = int(parts[1])
-                l = int(parts[2])
-            except ValueError:
-                t = l = None
-            if t is None or not (1 <= t <= self.n) or not (1 <= l <= self.n):
-                obs = "Malformed SCOUT: team and leg must each be integers 1-3. " + self._status_line()
-            elif self.scouts_used >= self.scout_budget:
-                obs = "No scouts remaining. Submit ASSIGN when ready. " + self._status_line()
-            else:
-                self.scouts_used += 1
-                c = self.cost[t - 1][l - 1]
-                obs = f"Scouted team {t} x leg {l}: fatigue cost = {c}. " + self._status_line()
-        elif parts and parts[0].upper() == "ASSIGN" and len(parts) == 4:
-            try:
-                legs = [int(x) for x in parts[1:]]
-            except ValueError:
-                legs = None
-            if legs is None or sorted(legs) != list(range(1, self.n + 1)):
-                obs = (
-                    "Malformed ASSIGN: give exactly 3 numbers that are a permutation "
-                    "of 1,2,3. " + self._status_line()
-                )
-            else:
-                submitted_cost = sum(self.cost[i][legs[i] - 1] for i in range(self.n))
-                span = self.worst_cost - self.optimal_cost
-                gap = submitted_cost - self.optimal_cost
-                r_valid = 0.2
-                r_beats_naive = 0.2 if submitted_cost <= self.naive_cost else 0.0
-                if span > 0:
-                    r_close = 0.6 * max(0.0, 1.0 - gap / span)
-                else:
-                    r_close = 0.6
-                reward = r_valid + r_beats_naive + r_close
-                terminated = True
-                self.done = True
-                obs = (
-                    f"Assignment submitted: {legs}. Total fatigue cost = {submitted_cost} "
-                    f"(optimal was {self.optimal_cost}). Episode ended."
-                )
+        if text == "inspect":
+            obs, reward = self._do_inspect()
+            terminated, truncated = False, False
         else:
-            obs = (
-                "Malformed action. Use 'SCOUT <team> <leg>' or "
-                "'ASSIGN <leg1> <leg2> <leg3>'. " + self._status_line()
-            )
+            m = re.match(r"^buy\s+(\d+)$", text)
+            if not m:
+                obs = ("Malformed action. Use 'inspect' or 'buy N' where N is a "
+                       "non-negative integer.")
+                reward = 0.0
+                terminated, truncated = False, False
+            else:
+                n = int(m.group(1))
+                if n > self.capacity - self.stock:
+                    obs = (f"Cannot buy {n}: capacity is {self.capacity}, you carry "
+                           f"{self.stock}, room for at most {self.capacity - self.stock}.")
+                    reward = 0.0
+                    terminated, truncated = False, False
+                else:
+                    obs, reward, terminated = self._do_buy(n)
+                    truncated = False
 
-        truncated = False
-        if not terminated and self.steps >= self.max_steps:
+        if not terminated and self.steps_used >= self.MAX_STEPS:
             truncated = True
             self.done = True
-            obs = obs + " Step budget exhausted without a final assignment."
+            obs += (f" Step budget exhausted at waypoint W{self.wp_index}; "
+                    "run incomplete.")
+        if terminated:
+            self.done = True
 
-        return obs, reward, terminated, truncated, {}
+        info = {"wp_index": self.wp_index, "stock": self.stock, "spent": self.spent}
+        return obs, reward, terminated, truncated, info
+
+    def _do_inspect(self):
+        i = self.wp_index
+        if i == 0:
+            return "W0's water is free (price 0); no need to inspect.", 0.0
+        if self.known[i]:
+            return f"Already known: W{i} charges {self.prices[i]}/unit.", 0.0
+        self.known[i] = True
+        return f"You inspect the well. W{i} charges exactly {self.prices[i]}/unit.", 0.0
+
+    def _do_buy(self, n):
+        i = self.wp_index
+        price = self.prices[i]
+        self.spent += price * n
+        self.stock += n
+        leg = self.legs[i]
+        remaining = self.stock - leg
+
+        if remaining < 0:
+            obs = (f"You buy {n} at W{i} (stock {self.stock}) and set out, but run dry "
+                   f"crossing the leg to W{i + 1} (needed {leg}, had {self.stock}). "
+                   f"Total spent: {self.spent}.")
+            return obs, 0.0, True
+
+        self.stock = remaining
+        self.wp_index += 1
+        reward = self.LEG_REWARD
+
+        if self.wp_index == 4:
+            ratio = min(1.0, self.optimal_cost / self.spent) if self.spent > 0 else 1.0
+            bonus = self.BONUS * ratio
+            reward += bonus
+            obs = (f"You buy {n} at W{i} and cross into the Final Oasis (W4) with "
+                   f"{self.stock} water to spare! Total spent: {self.spent} "
+                   f"(true optimum was {self.optimal_cost}). Journey complete.")
+            return obs, reward, True
+
+        obs = (f"You buy {n} at W{i}, cross the leg, and arrive at W{self.wp_index} "
+               f"with {self.stock} water. W{self.wp_index} is tagged "
+               f"{self._tag(self.wp_index)}. Spent so far: {self.spent}.")
+        return obs, reward, False

@@ -1,118 +1,129 @@
 import random
 
 
-class GrooveDensityRampEnv:
-    """Solver infers a hidden arithmetic hit-count ramp plus a hidden
-    even-spacing/rotation rule for a kick-drum groove from two notated
-    bars, may probe a hidden third bar for confirmation, then must
-    predict specific steps of a fourth, never-shown bar."""
-
-    def __init__(self):
-        self.n = 16
-        self.max_steps = 10
-
-    def _hits_for_k(self, k):
-        base = sorted(set((i * self.n) // k for i in range(k)))
-        return set((off + self.r) % self.n for off in base)
-
-    def _bar_string(self, hitset):
-        return "".join("x" if s in hitset else "." for s in range(self.n))
+class RhythmProgressionEnv:
+    N = 16
+    MAX_STEPS = 10
 
     def reset(self, seed=None):
         self.rng = random.Random(seed)
-        self.k1 = self.rng.randint(2, 5)
-        self.d = self.rng.choice([1, 2])
-        self.r = self.rng.randint(0, self.n - 1)
-        self.k = [self.k1 + i * self.d for i in range(4)]
-        self.hits = [self._hits_for_k(k) for k in self.k]
-        self.bar_strings = [self._bar_string(h) for h in self.hits]
-        self.query_positions = sorted(self.rng.sample(range(self.n), 4))
-        self.true_answers = [
-            "H" if s in self.hits[3] else "R" for s in self.query_positions
-        ]
         self.step_count = 0
-        self.done = False
+        self.terminated = False
+        self.count_rewarded = False
+        self.submitted = False
+
+        k1 = self.rng.choice([3, 4, 5])
+        d = self.rng.choice([1, 2])
+        self.k_seq = [k1 + i * d for i in range(5)]  # bars 1..5
+        self.target_k = self.k_seq[4]
+        self.target_pattern = self._pattern(self.target_k)
+
+        bars_text = []
+        for i in range(3):
+            bars_text.append(
+                f"Bar {i + 1} ({self.k_seq[i]} hits): {self._pattern(self.k_seq[i])}"
+            )
 
         obs = (
-            "GROOVE DENSITY RAMP\n"
-            f"A kick drum plays a {self.n}-step bar (steps 0-{self.n-1}, "
-            "'x'=hit, '.'=rest). Two consecutive notated bars follow.\n"
-            f"Bar 1: {self.bar_strings[0]}\n"
-            f"Bar 2: {self.bar_strings[1]}\n"
-            "Bar 3 is NOT shown. Bar 4 is NOT shown either, but you must "
-            "answer whether specific Bar-4 steps are hits ('H') or rests "
-            "('R'): steps "
-            + ", ".join(str(s) for s in self.query_positions)
-            + ".\n"
-            "The groove follows a consistent hidden rule across all four "
-            "bars — figure it out from Bar 1 and Bar 2.\n"
-            "Actions (exactly one per turn):\n"
-            "  PROBE <step>   - reveal Bar 3's true symbol at that step "
-            "(0-15). Costs a turn, no reward.\n"
-            "  ANSWER <v1> <v2> <v3> <v4> - your H/R prediction for the "
-            "four Bar-4 query steps above, in the order listed. Ends the "
-            "episode.\n"
-            f"You have {self.max_steps} turns total (probes and the "
-            "answer both count)."
+            "GROOVE RECONSTRUCTION. Each bar has 16 sixteenth-note steps (positions 0-15), "
+            "shown left to right as 'X' (hit) or '.' (rest). The hit COUNT rises by a fixed "
+            "amount from bar to bar. Within any bar, the hits are always spread as evenly as "
+            "possible across the 16 steps by one fixed, undisclosed rule that depends only on "
+            "the hit count.\n\n"
+            + "\n".join(bars_text)
+            + "\n\nGoal: reconstruct Bar 5 exactly, as a 16-character string of X/. .\n\n"
+            "Actions (send exactly one per turn):\n"
+            "  PROBE <k> <pos>   - ask whether step <pos> (integer 0-15) is a hit in the "
+            "16-step pattern for hit-count <k> (integer 1-16), under the same fixed rule.\n"
+            "  COUNT <k>         - declare your answer for how many hits Bar 5 contains.\n"
+            "  SUBMIT <pattern>  - submit your final 16-character X/. guess for Bar 5. This "
+            "ends the episode.\n"
+            f"You have {self.MAX_STEPS} steps total; PROBE, COUNT, and SUBMIT each use one "
+            "step. SUBMIT may only be used once."
         )
         return obs, {}
 
+    def _pattern(self, k):
+        hits = set((i * self.N) // k for i in range(k))
+        return "".join("X" if i in hits else "." for i in range(self.N))
+
     def step(self, action):
-        if self.done:
-            return "Episode already finished.", 0.0, True, False, {}
+        if self.terminated:
+            return "Episode already over.", 0.0, True, False, {}
 
         self.step_count += 1
         text = (action or "").strip()
         parts = text.split()
+        reward = 0.0
+        obs = ""
 
         if not parts:
-            obs = "Empty action. Use 'PROBE <step>' or 'ANSWER <v1> <v2> <v3> <v4>'."
-            truncated = self.step_count >= self.max_steps
-            self.done = self.done or truncated
-            return obs, 0.0, False, truncated, {}
+            obs = "Empty action. Use PROBE <k> <pos>, COUNT <k>, or SUBMIT <pattern>."
+        else:
+            cmd = parts[0].upper()
 
-        verb = parts[0].upper()
+            if cmd == "PROBE" and len(parts) == 3:
+                try:
+                    k = int(parts[1])
+                    pos = int(parts[2])
+                except ValueError:
+                    k = pos = None
+                if k is None or not (1 <= k <= 16) or not (0 <= pos <= 15):
+                    obs = "Malformed PROBE. Use: PROBE <k 1-16> <pos 0-15>."
+                else:
+                    pat = self._pattern(k)
+                    verdict = "HIT" if pat[pos] == "X" else "REST"
+                    obs = f"PROBE k={k} pos={pos} -> {verdict}"
 
-        if verb == "PROBE":
-            if len(parts) != 2 or not parts[1].lstrip("-").isdigit():
-                obs = "Malformed PROBE. Use 'PROBE <step>' with step an integer 0-15."
-                truncated = self.step_count >= self.max_steps
-                self.done = self.done or truncated
-                return obs, 0.0, False, truncated, {}
-            s = int(parts[1])
-            if not (0 <= s < self.n):
-                obs = f"Step must be in 0-{self.n-1}."
-                truncated = self.step_count >= self.max_steps
-                self.done = self.done or truncated
-                return obs, 0.0, False, truncated, {}
-            symbol = "x (hit)" if s in self.hits[2] else ". (rest)"
-            obs = f"Bar 3, step {s}: {symbol}"
-            truncated = self.step_count >= self.max_steps
-            self.done = self.done or truncated
-            return obs, 0.0, False, truncated, {}
+            elif cmd == "COUNT" and len(parts) == 2:
+                try:
+                    k = int(parts[1])
+                except ValueError:
+                    k = None
+                if k is None or not (1 <= k <= 60):
+                    obs = "Malformed COUNT. Use: COUNT <integer hit count>."
+                elif k == self.target_k:
+                    if not self.count_rewarded:
+                        reward = 0.3
+                        self.count_rewarded = True
+                        obs = "COUNT correct. Bar 5's hit count is confirmed."
+                    else:
+                        obs = "COUNT correct (already rewarded once)."
+                else:
+                    obs = "COUNT incorrect for Bar 5's hit count."
 
-        if verb == "ANSWER":
-            vals = [p.upper() for p in parts[1:]]
-            if len(vals) != 4 or any(v not in ("H", "R") for v in vals):
+            elif cmd == "SUBMIT" and len(parts) == 2:
+                guess = parts[1].upper()
+                if len(guess) != self.N or any(c not in "X." for c in guess):
+                    obs = "Malformed SUBMIT. Send exactly 16 characters made of X and . only."
+                else:
+                    self.submitted = True
+                    self.terminated = True
+                    matches = sum(1 for a, b in zip(guess, self.target_pattern) if a == b)
+                    if guess == self.target_pattern:
+                        reward = 0.7
+                        obs = (
+                            f"SUBMIT exact match! Bar 5 was: {self.target_pattern}. "
+                            "Episode complete."
+                        )
+                    else:
+                        reward = 0.7 * (matches / self.N)
+                        obs = (
+                            f"SUBMIT incorrect. {matches}/16 positions matched. "
+                            f"Bar 5 was: {self.target_pattern}. Episode complete."
+                        )
+            else:
                 obs = (
-                    "Malformed ANSWER. Use 'ANSWER <v1> <v2> <v3> <v4>' "
-                    "with each value exactly H or R, for the four query "
-                    "steps in the order given at the start."
+                    "Unrecognized action. Use PROBE <k> <pos>, COUNT <k>, or "
+                    "SUBMIT <16-char X/. pattern>."
                 )
-                truncated = self.step_count >= self.max_steps
-                self.done = self.done or truncated
-                return obs, 0.0, False, truncated, {}
-            correct = sum(1 for a, t in zip(vals, self.true_answers) if a == t)
-            reward = correct * 0.2 + (0.2 if correct == 4 else 0.0)
-            self.done = True
-            obs = (
-                f"ANSWER submitted: {' '.join(vals)}. "
-                f"Correct: {correct}/4 (bonus {'earned' if correct == 4 else 'not earned'}). "
-                f"True Bar 4 pattern: {self.bar_strings[3]}"
-            )
-            return obs, reward, True, False, {}
 
-        obs = "Unknown action verb. Use 'PROBE <step>' or 'ANSWER <v1> <v2> <v3> <v4>'."
-        truncated = self.step_count >= self.max_steps
-        self.done = self.done or truncated
-        return obs, 0.0, False, truncated, {}
+        truncated = False
+        if not self.terminated and self.step_count >= self.MAX_STEPS:
+            truncated = True
+            obs += " Step limit reached without a submission."
+
+        info = {
+            "steps_remaining": max(0, self.MAX_STEPS - self.step_count),
+        }
+        return obs, reward, self.terminated, truncated, info
