@@ -60,3 +60,14 @@ round 1 already done, skipping
 }
 === C1 round 2 done 15:59:26 ===
 === C1 round 3 try 1/4 (seed 2003) start 15:59:26 ===
+{
+  "condition": "C1",
+  "round": 3,
+  "strategy": "S0",
+  "fitness": 0.1062,
+  "valid": "6/6",
+  "learnable_fraction": 0.3333333333333333,
+  "backend_calls": 109
+}
+=== C1 round 3 done 16:51:00 ===
+=== C1 round 4 try 1/4 (seed 2004) start 16:51:00 ===
