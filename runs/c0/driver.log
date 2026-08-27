@@ -49,3 +49,14 @@ szg.backends.BackendError: backend failed after retries: claude -p rc=1:
 round 0 already done, skipping
 round 1 already done, skipping
 === C0 round 2 try 1/4 (seed 2002) start 15:06:12 ===
+{
+  "condition": "C0",
+  "round": 2,
+  "strategy": "S0",
+  "fitness": 0.2083,
+  "valid": "4/6",
+  "learnable_fraction": 0.3333333333333333,
+  "backend_calls": 159
+}
+=== C0 round 2 done 16:12:20 ===
+=== C0 round 3 try 1/4 (seed 2003) start 16:12:20 ===
