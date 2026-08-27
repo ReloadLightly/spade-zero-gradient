@@ -21,3 +21,28 @@
 }
 === C0 round 1 done 13:46:19 ===
 === C0 round 2 (seed 2002) start 13:46:19 ===
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 322, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 318, in main
+    return args.fn(args)
+           ^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 120, in cmd_round
+    rec = run_env_cycle(backend, args.designer_model, args.solver_model,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 74, in run_env_cycle
+    ev = evaluate_env(design.code, design.hint, backend, solver_model,
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/runner.py", line 128, in evaluate_env
+    res = play_episode(env_cls, backend, solver_model,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/runner.py", line 74, in play_episode
+    reply = backend.complete("\n\n".join(prompt_parts), model=model)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/backends.py", line 59, in complete
+    raise BackendError(f"backend failed after retries: {last_err}")
+szg.backends.BackendError: backend failed after retries: claude -p rc=1: 
+=== C0 round 2 FAILED rc=1 ===
