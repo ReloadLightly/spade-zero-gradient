@@ -27,9 +27,11 @@ class CallStats:
 class ClaudeCLIBackend:
     """Non-interactive ``claude -p`` per completion. Stateless per call."""
 
-    def __init__(self, timeout_s: float = 240.0, retries: int = 1):
+    def __init__(self, timeout_s: float = 240.0, retries: int = 4,
+                 backoff_s: float = 5.0):
         self.timeout_s = timeout_s
         self.retries = retries
+        self.backoff_s = backoff_s
         self.stats = CallStats()
 
     def complete(self, prompt: str, model: str, max_tokens: int | None = None) -> str:
@@ -55,6 +57,12 @@ class ClaudeCLIBackend:
                 return out
             except (subprocess.TimeoutExpired, BackendError) as e:
                 last_err = e
+                # Transient backend outages take out every in-flight process at
+                # once: on 2026-08-26 a burst of `claude -p rc=1` with empty
+                # stderr killed all three S3 conditions inside 25 minutes, at
+                # retries=1. Back off exponentially rather than hammering.
+                if _attempt < self.retries:
+                    time.sleep(self.backoff_s * (2 ** _attempt))
                 continue
         raise BackendError(f"backend failed after retries: {last_err}")
 
