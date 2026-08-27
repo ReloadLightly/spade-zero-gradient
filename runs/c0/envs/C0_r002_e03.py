@@ -1,157 +1,145 @@
-import random
 import re
 
 
-class AuthenticGemBalanceEnv:
-    """Find the one counterfeit gem among 8 via balance-scale weighings."""
-
-    N_GEMS = 8
+class GemBalanceEnv:
+    WEIGH_RE = re.compile(r'^\s*WEIGH\s+([0-9,\s]+)\s+VS\s+([0-9,\s]+)\s*$', re.IGNORECASE)
+    GUESS_RE = re.compile(r'^\s*GUESS\s+(\d+)\s+(HEAVIER|LIGHTER)\s*$', re.IGNORECASE)
     MAX_STEPS = 10
-    DIRECTIONS = ("HEAVIER", "LIGHTER")
-
-    WEIGH_RE = re.compile(r'^WEIGH\s+([0-9,\s]+)\|([0-9,\s]+)$', re.IGNORECASE)
-    GUESS_RE = re.compile(r'^GUESS\s+(\d+)\s+(HEAVIER|LIGHTER)$', re.IGNORECASE)
+    N = 8
+    INFORMATIVE_CAP = 3
+    INFORMATIVE_REWARD = 0.1
+    GUESS_REWARD = 0.7
 
     def __init__(self):
         self.rng = None
-        self.fake_index = None
+        self.gems = list(range(1, self.N + 1))
+        self.fake = None
         self.direction = None
-        self.hypotheses = set()
+        self.candidates = set()
         self.step_count = 0
-        self.achieved = set()
-        self.terminated = False
+        self.informative_used = 0
+        self.done = False
 
     def reset(self, seed=None):
+        import random
         self.rng = random.Random(seed)
-        self.fake_index = self.rng.randint(1, self.N_GEMS)
-        self.direction = self.rng.choice(self.DIRECTIONS)
-        self.hypotheses = {
-            (g, d) for g in range(1, self.N_GEMS + 1) for d in self.DIRECTIONS
-        }
+        self.fake = self.rng.randrange(self.N) + 1
+        self.direction = self.rng.choice(['heavier', 'lighter'])
+        self.candidates = {(g, d) for g in self.gems for d in ('heavier', 'lighter')}
         self.step_count = 0
-        self.achieved = set()
-        self.terminated = False
-
+        self.informative_used = 0
+        self.done = False
         obs = (
-            "You are appraising 8 gems, labeled 1-8. Exactly one is a counterfeit: "
-            "it is either HEAVIER or LIGHTER than all 7 genuine gems (which are "
-            "identical in weight to each other). You do not know which gem or which "
-            "direction. You have a balance scale.\n\n"
-            "Goal: identify the counterfeit's index AND whether it is HEAVIER or LIGHTER, "
-            "within 10 total actions.\n\n"
-            "Actions (exactly one per turn):\n"
-            "  WEIGH a,b,c|d,e,f   -- place left-of-bar indices, then right-of-bar indices, "
-            "separated by '|'. Both sides must have the same nonzero count of distinct, "
-            "unused-elsewhere gems (no gem on both sides). Reply tells which side went down, "
-            "or BALANCED.\n"
-            "  GUESS <index> <HEAVIER|LIGHTER>  -- final answer; ends the episode.\n\n"
-            "You have 16 initially-possible (gem, direction) hypotheses. Every weighing must "
-            "be used to eliminate hypotheses inconsistent with its outcome."
+            "GEM AUTHENTICATION. There are 8 gems labeled 1-8. Exactly one is a "
+            "counterfeit whose true weight differs from all the others; it may be "
+            "HEAVIER or LIGHTER than genuine gems, but you do not know which, nor "
+            "which gem it is. You have a balance scale.\n"
+            "Actions (send exactly one per turn, plain text):\n"
+            "  WEIGH <left> VS <right>   e.g. WEIGH 1,2,3 VS 4,5,6\n"
+            "    (left/right are comma-separated gem labels, equal counts, no repeats,\n"
+            "     no gem on both sides). Reply reports LEFT heavier, RIGHT heavier, or BALANCED.\n"
+            "  GUESS <gem> <HEAVIER|LIGHTER>   e.g. GUESS 5 LIGHTER\n"
+            "    This is a final, one-shot answer: it ends the episode immediately.\n"
+            "You have at most 10 total actions. Weigh first; guess only once you are certain."
         )
-        return obs, {"n_gems": self.N_GEMS, "max_steps": self.MAX_STEPS}
+        return obs, {}
 
-    def _simulate_outcome(self, gem, direction, left, right):
-        if gem in left:
-            return "LEFT_DOWN" if direction == "HEAVIER" else "RIGHT_DOWN"
-        if gem in right:
-            return "RIGHT_DOWN" if direction == "HEAVIER" else "LEFT_DOWN"
-        return "BALANCED"
+    def _simulate(self, fake_gem, fake_dir, left, right):
+        def w(x):
+            if x == fake_gem:
+                return 1 if fake_dir == 'heavier' else -1
+            return 0
+        l = sum(w(x) for x in left)
+        r = sum(w(x) for x in right)
+        if l > r:
+            return 'LEFT heavier'
+        if r > l:
+            return 'RIGHT heavier'
+        return 'BALANCED'
 
-    def _malformed(self, message):
-        self.step_count += 1
-        truncated = self.step_count >= self.MAX_STEPS
-        if truncated:
-            self.terminated = True
-        obs = message + f" ({self.MAX_STEPS - self.step_count} actions remaining.)"
-        return obs, 0.0, False, truncated, {"valid": False, "step": self.step_count}
-
-    def _parse_group(self, text):
-        parts = [p.strip() for p in text.split(",") if p.strip() != ""]
-        return [int(p) for p in parts if p.isdigit()]
+    def _parse_weigh(self, m):
+        left_raw, right_raw = m.group(1), m.group(2)
+        try:
+            left = [int(x) for x in left_raw.split(',') if x.strip() != '']
+            right = [int(x) for x in right_raw.split(',') if x.strip() != '']
+        except ValueError:
+            return None
+        if not left or not right:
+            return None
+        if len(left) != len(right):
+            return None
+        if len(set(left)) != len(left) or len(set(right)) != len(right):
+            return None
+        if set(left) & set(right):
+            return None
+        if any(g not in self.gems for g in left + right):
+            return None
+        return left, right
 
     def step(self, action):
-        if self.terminated:
-            return "Episode already ended.", 0.0, True, False, {"valid": False}
+        if self.done:
+            return "Episode already finished.", 0.0, True, False, {}
 
-        action = (action or "").strip()
-        upper = action.upper()
+        self.step_count += 1
+        reward = 0.0
+        terminated = False
+        truncated = False
+        info = {}
 
-        if upper.startswith("WEIGH"):
-            m = self.WEIGH_RE.match(action)
-            if not m:
-                return self._malformed(
-                    "Malformed WEIGH. Use: WEIGH 1,2,3|4,5,6 (comma-separated indices, "
-                    "'|' between the two pans)."
-                )
-            left = self._parse_group(m.group(1))
-            right = self._parse_group(m.group(2))
-            valid_range = all(1 <= g <= self.N_GEMS for g in left + right)
-            no_overlap = len(set(left) & set(right)) == 0
-            equal_nonzero = len(left) == len(right) and len(left) > 0
-            distinct = len(set(left)) == len(left) and len(set(right)) == len(right)
-            if not (valid_range and no_overlap and equal_nonzero and distinct):
-                return self._malformed(
-                    "Invalid weighing: both pans need equal, nonzero, non-overlapping "
-                    "sets of distinct indices from 1-8."
-                )
+        action = action if isinstance(action, str) else str(action)
+        wm = self.WEIGH_RE.match(action)
+        gm = None if wm else self.GUESS_RE.match(action)
 
-            self.step_count += 1
-            outcome = self._simulate_outcome(self.fake_index, self.direction, left, right)
-            before = len(self.hypotheses)
-            self.hypotheses = {
-                h for h in self.hypotheses
-                if self._simulate_outcome(h[0], h[1], left, right) == outcome
-            }
-            after = len(self.hypotheses)
-
-            reward = 0.0
-            if after <= 6 and "mid" not in self.achieved:
-                reward += 0.2
-                self.achieved.add("mid")
-            if after <= 2 and "narrow" not in self.achieved:
-                reward += 0.3
-                self.achieved.add("narrow")
-
-            truncated = self.step_count >= self.MAX_STEPS
-            if truncated:
-                self.terminated = True
-
-            obs = (
-                f"Result: {outcome}. Hypotheses narrowed from {before} to {after}. "
-                f"({self.MAX_STEPS - self.step_count} actions remaining.)"
-            )
-            if truncated:
-                obs += " Out of actions -- episode over without a guess."
-            return obs, reward, False, truncated, {
-                "valid": True, "step": self.step_count, "hypotheses_remaining": after
-            }
-
-        if upper.startswith("GUESS"):
-            m = self.GUESS_RE.match(action)
-            if not m:
-                return self._malformed(
-                    "Malformed GUESS. Use: GUESS <index 1-8> <HEAVIER|LIGHTER>."
-                )
-            gem = int(m.group(1))
-            direction = m.group(2).upper()
-            if not (1 <= gem <= self.N_GEMS):
-                return self._malformed("Guessed index must be between 1 and 8.")
-
-            self.step_count += 1
-            self.terminated = True
-            correct = (gem == self.fake_index) and (direction == self.direction)
-            reward = 0.5 if correct else 0.0
-            if correct:
-                obs = f"Correct! Gem {gem} was the counterfeit ({direction})."
-            else:
+        if wm:
+            parsed = self._parse_weigh(wm)
+            if parsed is None:
                 obs = (
-                    f"Incorrect. Gem {gem} ({direction}) was not the counterfeit. "
-                    "Episode over."
+                    "Malformed WEIGH action. Use: WEIGH <left> VS <right> with equal-size, "
+                    "disjoint, comma-separated gem labels from 1-8, e.g. WEIGH 1,2 VS 3,4."
                 )
-            return obs, reward, True, False, {
-                "valid": True, "step": self.step_count, "correct": correct
-            }
+            else:
+                left, right = parsed
+                outcome = self._simulate(self.fake, self.direction, left, right)
+                before = len(self.candidates)
+                self.candidates = {
+                    (g, d) for (g, d) in self.candidates
+                    if self._simulate(g, d, left, right) == outcome
+                }
+                after = len(self.candidates)
+                if after < before and self.informative_used < self.INFORMATIVE_CAP:
+                    reward = self.INFORMATIVE_REWARD
+                    self.informative_used += 1
+                obs = (
+                    f"Result: {outcome}. Consistent (gem, direction) hypotheses "
+                    f"remaining: {after}."
+                )
+                info['candidates_remaining'] = after
+        elif gm:
+            guess_gem = int(gm.group(1))
+            guess_dir = gm.group(2).lower()
+            terminated = True
+            self.done = True
+            if guess_gem == self.fake and guess_dir == self.direction:
+                reward = self.GUESS_REWARD
+                obs = (
+                    f"Correct! Gem {guess_gem} is the counterfeit and it is "
+                    f"{guess_dir}. You win."
+                )
+            else:
+                reward = 0.0
+                obs = (
+                    f"Incorrect: gem {guess_gem} being {guess_dir} is not "
+                    "consistent with the evidence gathered. Episode over."
+                )
+        else:
+            obs = (
+                "Malformed action. Use 'WEIGH <left> VS <right>' (e.g. WEIGH 1,2 VS 3,4) "
+                "or 'GUESS <gem> <HEAVIER|LIGHTER>' (e.g. GUESS 5 LIGHTER)."
+            )
 
-        return self._malformed(
-            "Unrecognized action. Use WEIGH a,b,c|d,e,f or GUESS <index> <HEAVIER|LIGHTER>."
-        )
+        if not terminated and self.step_count >= self.MAX_STEPS:
+            truncated = True
+            self.done = True
+            obs += " Step limit reached; episode over."
+
+        return obs, reward, terminated, truncated, info
