@@ -138,3 +138,15 @@ round 3 already done, skipping
 clean: C0 round 4 has no infrastructure losses
 === C0 round 4 done 04:12:10 ===
 === C0 round 5 try 1/6 (seed 2005) start 04:12:10 ===
+{
+  "condition": "C0",
+  "round": 5,
+  "strategy": "S0",
+  "fitness": 0.0167,
+  "valid": "4/6",
+  "learnable_fraction": 0.5,
+  "backend_calls": 176
+}
+clean: C0 round 5 has no infrastructure losses
+=== C0 round 5 done 05:42:39 ===
+=== C0 ALL ROUNDS COMPLETE ===
