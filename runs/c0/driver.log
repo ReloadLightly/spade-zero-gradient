@@ -126,3 +126,15 @@ round 1 already done, skipping
 round 2 already done, skipping
 round 3 already done, skipping
 === C0 round 4 try 1/6 (seed 2004) start 03:09:28 ===
+{
+  "condition": "C0",
+  "round": 4,
+  "strategy": "S0",
+  "fitness": 0.0,
+  "valid": "1/6",
+  "learnable_fraction": 0.16666666666666666,
+  "backend_calls": 126
+}
+clean: C0 round 4 has no infrastructure losses
+=== C0 round 4 done 04:12:10 ===
+=== C0 round 5 try 1/6 (seed 2005) start 04:12:10 ===
