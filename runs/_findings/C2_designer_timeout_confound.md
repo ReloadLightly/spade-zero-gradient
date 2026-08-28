@@ -22,10 +22,26 @@ as backend outage; that was wrong and is corrected here.
       c1  0 / 27                            c1  25/27  (93%)
       c2  4 / 27                            c2  21/27  (78%)
 
-C2 is the only condition whose designer prompt carries BOTH an accumulating
-memory digest AND an evolved strategy text. C0 carries neither and has never
-timed out. C1 carries a digest but no evolved strategy and has never timed
-out either.
+C2 is the only condition that has ever recorded a true designer timeout.
+
+**Mechanism — CORRECTED 2026-08-28.** This document originally attributed the
+timeouts to prompt size: C2 carries both a memory digest and an evolved
+strategy, so its prompt is longest. That explanation is wrong. The digest is
+bounded (it plateaus around 5.4 KB) and C2's designer prompt exceeds C1's by
+only ~266 characters — the strategy-text delta — while C1, which carries a
+digest of the same size, has never timed out once.
+
+The timeouts are driven by GENERATION TIME under strategy S3, whose text asks
+the designer for expensive pre-output verification. They cluster on two
+skill slots (logical_deduction, pattern_recognition) and are full
+exhaustions of all retries, not marginal overruns. The consequence for the
+proposed fix is direct: capping the digest would not help. `timeout_s` is
+the only lever.
+
+Corrected by an independent review (`2026-08-28_external_midgrid_review.md`)
+and re-verified here from the env census, which now separates true timeouts
+from `rc=1` backend refusals — two failures this log had been conflating.
+Under that split, C0 and C1 have zero timeouts.
 
 ## Why it matters
 

@@ -170,13 +170,18 @@ def analyse() -> dict:
     # env loss census
     census = {}
     for c in CONDITIONS:
-        cc = {"evaluated": 0, "designer_timeout": 0, "V2_hint_too_long": 0, "other_gate": 0}
+        cc = {"evaluated": 0, "designer_timeout": 0, "designer_backend_error": 0,
+              "V2_hint_too_long": 0, "other_gate": 0}
         for e in envs[c]:
             iss = (e.get("gate_issues") or [""])[0]
             if e.get("stage") == "evaluated":
                 cc["evaluated"] += 1
             elif e.get("stage") == "design":
-                cc["designer_timeout"] += 1
+                # two distinct failures, previously conflated: a true timeout
+                # (generation exceeded timeout_s, seen only under C2/S3) vs a
+                # backend refusal rc=1 (the usage-limit outage, hit all three)
+                cc["designer_timeout" if "timed out" in iss
+                   else "designer_backend_error"] += 1
             elif "hint exceeds" in iss:
                 cc["V2_hint_too_long"] += 1
             else:
@@ -277,8 +282,9 @@ def report(a: dict) -> str:
         cc = a["descriptives"]["env_census"][c]
         n = sum(cc.values())
         L.append(f"  {COND_NAME[c]:<22} evaluated {cc['evaluated']}/{n} "
-                 f"| timeout {cc['designer_timeout']} | V2 {cc['V2_hint_too_long']} "
-                 f"| other {cc['other_gate']}")
+                 f"| designer-timeout {cc['designer_timeout']} "
+                 f"| backend-rc1 {cc['designer_backend_error']} "
+                 f"| V2 {cc['V2_hint_too_long']} | other {cc['other_gate']}")
     L.append("")
     L.append("BANDS — validity under both V3 definitions (A2)")
     for c, d in a["descriptives"]["bands"].items():

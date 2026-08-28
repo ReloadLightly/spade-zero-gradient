@@ -174,6 +174,44 @@ def test_score_round_tolerates_absent_win_nohint():
     assert score.learnable_fraction == pytest.approx(2 / 3)
 
 
+def test_round_health_rejects_fabricated_round(tmp_path):
+    """A round whose envs all died at the designer call is not data.
+
+    C0 r4 and C1 r4 of the main grid (2026-08-27) looked complete: cmd_round
+    catches design failures per-env, so it exited 0 and scored fitness 0.0
+    with 0/6 valid. Both landed in the final third the primary endpoint
+    measures.
+    """
+    from szg.round_health import round_stats, MIN_VALID
+    d = tmp_path
+    recs = [{"env_id": f"C0_r004_e{i:02d}", "stage": "design",
+             "valid_for_fitness": False} for i in range(6)]
+    d.joinpath("envs.jsonl").write_text(
+        "".join(json.dumps(r) + "\n" for r in recs))
+    lost, n_valid = round_stats(d, "C0", 4)
+    assert len(lost) == 6 and n_valid == 0
+    assert n_valid < MIN_VALID          # -> UNUSABLE, driver prunes and retries
+
+
+def test_round_health_accepts_degraded_round(tmp_path):
+    """A round that lost some envs but still scored is degraded, not fabricated.
+
+    Rejecting these livelocks: C2 r4 re-selects the same strategy under the
+    same seed, so a retry reproduces the same timeouts forever.
+    """
+    from szg.round_health import round_stats, MIN_VALID
+    d = tmp_path
+    recs = [{"env_id": "C2_r004_e00", "stage": "design", "valid_for_fitness": False},
+            {"env_id": "C2_r004_e01", "stage": "design", "valid_for_fitness": False},
+            {"env_id": "C2_r004_e02", "stage": "evaluated", "valid_for_fitness": True},
+            {"env_id": "C2_r004_e03", "stage": "evaluated", "valid_for_fitness": True}]
+    d.joinpath("envs.jsonl").write_text(
+        "".join(json.dumps(r) + "\n" for r in recs))
+    lost, n_valid = round_stats(d, "C2", 4)
+    assert len(lost) == 2 and n_valid == 2
+    assert n_valid >= MIN_VALID         # -> usable, keep the real measurements
+
+
 def test_diversity_proxy_bounds():
     assert 0.0 <= diversity_proxy(["a b c d", "a b c d"]) <= 1.0
 
