@@ -152,3 +152,16 @@ mutated S3 -> S5
 clean: C2 round 4 has no infrastructure losses
 === C2 round 4 done 05:38:54 ===
 === C2 round 5 try 1/6 (seed 2005) start 05:38:54 ===
+mutated S0 -> S6
+{
+  "condition": "C2",
+  "round": 5,
+  "strategy": "S0",
+  "fitness": 0.2212,
+  "valid": "5/6",
+  "learnable_fraction": 0.3333333333333333,
+  "backend_calls": 147
+}
+clean: C2 round 5 has no infrastructure losses
+=== C2 round 5 done 07:22:00 ===
+=== C2 ALL ROUNDS COMPLETE ===
