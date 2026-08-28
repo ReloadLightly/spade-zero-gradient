@@ -275,6 +275,40 @@ descriptive the floored metric compresses; C0 nonstationarity; the round-0
 yield natural experiment; backend_calls undercount of timeouts; the
 C1_r002_e05 reclassification; probe R2 concentration.
 
+## E. Addendum (2026-08-28, after pulling 55d7b38 and e237fac)
+
+Two commits landed after this review's snapshot; they change the picture:
+
+1. **C5 is fixed.** `prune_round` now strips rounds.jsonl entries, after the
+   predicted failure occurred in the wild (phantom C2 r4 during the
+   usage-limit outage). The fix matches this review's D1.1. Confirmed sound.
+   C6 (gitignored markers vs git-restore) still stands.
+2. **`round_health.py` closes the silent-degraded-round hole (C-class win),
+   but creates an urgent new interaction with B1 + C1:** the driver now
+   prunes and retries any round with a design-stage loss. C2's re-running
+   round 4 will deterministically re-select S3 (`Random(2004)` replay, §C1)
+   with the **same seed → same topics → byte-identical designer prompts**
+   as the attempt that already lost e00/e01 to timeouts. Those two slots
+   have timed out **20/20 generation attempts** across r3 and the first r4
+   (all full 5×240 s exhaustions — content-driven, not load). Expected
+   outcome: each health-gated retry burns ~40+ min in timeouts and fails
+   again — up to 6 tries ≈ hours of spend, then the C2 condition exits with
+   no r4. Under the new regime the old "don't raise timeout_s mid-grid"
+   trade-off has changed: degraded rounds are no longer scored at all, so
+   the realistic alternatives for C2 r4/r5 are (a) raise `timeout_s` now
+   (infrastructure; document the round-index asymmetry it introduces — the
+   finding doc's own argument) or (b) accept a structurally missing C2
+   final third. That looks like a STOP-for-Roland decision, and it is
+   time-sensitive while the retry loop is burning.
+3. **Regime note for S4:** rounds 0–3 were scored under the old policy
+   (design losses tolerated — C2 r3 scored with 2 of them); rounds 4–5 run
+   under the new policy (any design loss → retry). This is itself a
+   round-index-correlated change worth one sentence in the writeup, and it
+   strengthens the case for the C2 r3 sensitivity analysis (D2.1).
+4. `tools/analyze.py` (registered endpoints + minimum-detectable-effect
+   sensitivity) independently converges with D2.1. The MDE section is
+   exactly the right instrument for the P1/B2 power finding.
+
 ## Provenance of this review
 
 Produced by parallel analysis agents (run-data + evolution-code audits
