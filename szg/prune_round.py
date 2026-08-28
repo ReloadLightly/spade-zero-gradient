@@ -6,8 +6,16 @@ leaves orphaned env/episode/memory records behind. The driver re-runs the
 round from scratch, which would append a second set of records with the
 same env_ids. This strips the partial set first so the retry is clean.
 
-Only touches append-only JSONL logs; never touches rounds.jsonl, which is
-written once per round and so is absent for a failed round by construction.
+Strips rounds.jsonl too. An earlier version of this tool deliberately left
+rounds.jsonl alone, on the assumption that a failed round never gets one
+written. That assumption is FALSE for C2: cmd_round writes rounds.jsonl and
+records the strategy fitness BEFORE the --mutate step, so a round whose
+mutate call fails is scored, logged, and then reported as rc=1. On
+2026-08-27 a usage-limit outage produced exactly that -- C2 round 4 lost all
+six envs at the designer call, was scored INVALID_ROUND with fitness 0.0,
+had its rounds.jsonl entry written, then failed at mutate. Pruning only the
+env records left a phantom round in the trajectory that looked like a real
+zero-fitness round.
 
     python -m szg.prune_round runs/c0 C0 2
 """
@@ -22,7 +30,7 @@ from pathlib import Path
 def prune(out_dir: Path, condition: str, round_index: int) -> dict:
     prefix = f"{condition}_r{round_index:03d}_"
     removed = {}
-    for name in ("envs.jsonl", "episodes.jsonl", "memory.jsonl"):
+    for name in ("envs.jsonl", "episodes.jsonl", "memory.jsonl", "rounds.jsonl"):
         p = out_dir / name
         if not p.exists():
             continue
@@ -35,7 +43,12 @@ def prune(out_dir: Path, condition: str, round_index: int) -> dict:
             except json.JSONDecodeError:
                 kept.append(line)      # keep anything unparseable rather than lose it
                 continue
-            if str(rec.get("env_id", "")).startswith(prefix):
+            if name == "rounds.jsonl":
+                match = (rec.get("condition") == condition
+                         and rec.get("round_index") == round_index)
+            else:
+                match = str(rec.get("env_id", "")).startswith(prefix)
+            if match:
                 dropped += 1
             else:
                 kept.append(line)

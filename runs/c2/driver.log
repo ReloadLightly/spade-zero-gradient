@@ -80,3 +80,57 @@ round 1 already done, skipping
 round 2 already done, skipping
 round 3 already done, skipping
 === C2 round 4 try 1/4 (seed 2004) start 17:46:59 ===
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 322, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 318, in main
+    return args.fn(args)
+           ^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 120, in cmd_round
+    rec = run_env_cycle(backend, args.designer_model, args.solver_model,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 74, in run_env_cycle
+    ev = evaluate_env(design.code, design.hint, backend, solver_model,
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/runner.py", line 128, in evaluate_env
+    res = play_episode(env_cls, backend, solver_model,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/runner.py", line 74, in play_episode
+    reply = backend.complete("\n\n".join(prompt_parts), model=model)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/backends.py", line 67, in complete
+    raise BackendError(f"backend failed after retries: {last_err}")
+szg.backends.BackendError: backend failed after retries: claude -p rc=1: 
+=== C2 round 4 try 1 FAILED rc=1; pruning partial records ===
+pruned C2 round 4 from runs/c2: {'envs.jsonl': 5, 'episodes.jsonl': 18, 'memory.jsonl': 3}
+backing off 120s before retry
+=== C2 round 4 try 2/4 (seed 2004) start 19:18:38 ===
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 322, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 318, in main
+    return args.fn(args)
+           ^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 147, in cmd_round
+    child = mutate(backend, args.designer_model,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/evolve.py", line 139, in mutate
+    text = backend.complete(prompt, model=model).strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/backends.py", line 67, in complete
+    raise BackendError(f"backend failed after retries: {last_err}")
+szg.backends.BackendError: backend failed after retries: claude -p rc=1: 
+=== C2 round 4 try 2 FAILED rc=1; pruning partial records ===
+pruned C2 round 4 from runs/c2: {'envs.jsonl': 6, 'episodes.jsonl': 0, 'memory.jsonl': 0}
+backing off 120s before retry
+round 0 already done, skipping
+round 1 already done, skipping
+round 2 already done, skipping
+round 3 already done, skipping
+=== C2 round 4 try 1/4 (seed 2004) start 03:05:32 ===

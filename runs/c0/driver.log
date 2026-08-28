@@ -76,3 +76,48 @@ round 1 already done, skipping
 round 2 already done, skipping
 round 3 already done, skipping
 === C0 round 4 try 1/4 (seed 2004) start 17:46:59 ===
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 322, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 318, in main
+    return args.fn(args)
+           ^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 120, in cmd_round
+    rec = run_env_cycle(backend, args.designer_model, args.solver_model,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/cli.py", line 74, in run_env_cycle
+    ev = evaluate_env(design.code, design.hint, backend, solver_model,
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/runner.py", line 128, in evaluate_env
+    res = play_episode(env_cls, backend, solver_model,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/runner.py", line 74, in play_episode
+    reply = backend.complete("\n\n".join(prompt_parts), model=model)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/spade-zero-gradient/szg/backends.py", line 67, in complete
+    raise BackendError(f"backend failed after retries: {last_err}")
+szg.backends.BackendError: backend failed after retries: claude -p rc=1: 
+=== C0 round 4 try 1 FAILED rc=1; pruning partial records ===
+pruned C0 round 4 from runs/c0: {'envs.jsonl': 2, 'episodes.jsonl': 12}
+backing off 120s before retry
+=== C0 round 4 try 2/4 (seed 2004) start 19:17:12 ===
+{
+  "condition": "C0",
+  "round": 4,
+  "strategy": "S0",
+  "fitness": 0.0,
+  "valid": "0/6",
+  "learnable_fraction": 0.0,
+  "backend_calls": 30
+}
+=== C0 round 4 done 19:25:55 ===
+=== C0 round 5 try 1/4 (seed 2005) start 19:25:55 ===
+round 0 already done, skipping
+round 1 already done, skipping
+round 2 already done, skipping
+round 3 already done, skipping
+round 4 already done, skipping
+=== C0 round 5 try 1/4 (seed 2005) start 03:05:32 ===
