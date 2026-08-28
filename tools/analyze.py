@@ -111,17 +111,38 @@ def analyse() -> dict:
             "n_envs_evaluated": sum(1 for e in envs[c] if e.get("stage") == "evaluated"),
         }
 
+    # ---- GUARD: the endpoint is only meaningful on a balanced grid ----
+    # final_third() takes k = max(1, n_rounds//3), so a condition that is one
+    # round short gets a ONE-round window while the others get two. On
+    # 2026-08-28, with C2 at 5 rounds and C0/C1 at 6, that compared C2's best
+    # round against C0's two worst and produced C2-C0 = +0.0871, CI excluding
+    # zero, classified DESIGN_IMPROVES. Entirely an artifact of the unequal
+    # window. Refuse to report the primary endpoint until the grid is balanced.
+    n_by_cond = {c: len(rounds[c]) for c in CONDITIONS}
+    balanced = len(set(n_by_cond.values())) == 1 and min(n_by_cond.values()) > 0
+    out["grid_balanced"] = balanced
+    out["rounds_by_condition"] = n_by_cond
+    if not balanced:
+        out["primary"] = {}
+        out["registered_outcome"] = (
+            "NOT COMPUTED — grid unbalanced %s; the final-third window would "
+            "differ in width between conditions" % n_by_cond)
+        out["sensitivity"] = {"note": "withheld until the grid is balanced"}
+
     # ---- PRIMARY: final-third env-level regrets, bootstrap over environments ----
     ft_regret = {}
     for c in CONDITIONS:
         ft = final_third(rounds[c])
         ft_regret[c] = [e["floored_regret"] for e in valid_envs(envs[c], ft)]
         out["conditions"][c]["final_third_valid_envs"] = len(ft_regret[c])
-    for label, (a, b) in (("C2-C0", ("c2", "c0")), ("C1-C0", ("c1", "c0")),
-                          ("C2-C1", ("c2", "c1"))):
-        out["primary"][label] = boot_diff(ft_regret[a], ft_regret[b])
+    if balanced:
+        for label, (a, b) in (("C2-C0", ("c2", "c0")), ("C1-C0", ("c1", "c0")),
+                              ("C2-C1", ("c2", "c1"))):
+            out["primary"][label] = boot_diff(ft_regret[a], ft_regret[b])
 
     # ---- SENSITIVITY: what could this design have detected? ----
+    if not balanced:
+        return out
     all_round_f = [r["fitness"] for c in CONDITIONS for r in rounds[c]]
     c0f = [r["fitness"] for r in rounds["c0"]]
     se = out["primary"].get("C2-C0", {}).get("se") if out["primary"].get("C2-C0") else None
@@ -238,6 +259,15 @@ def report(a: dict) -> str:
         L.append(f"      final third: rounds {d['final_third_rounds']} "
                  f"({d['final_third_valid_envs']} valid envs)")
     L.append("")
+    if not a.get("grid_balanced", True):
+        L.append("PRIMARY ENDPOINT — WITHHELD")
+        L.append(f"  grid is unbalanced: rounds per condition {a['rounds_by_condition']}")
+        L.append("  the final-third window would be narrower for the short condition,")
+        L.append("  which biases the comparison. Endpoint reported only on a balanced grid.")
+        L.append("")
+        L.append(f"  {a['registered_outcome']}")
+        L.append("=" * 72)
+        return "\n".join(L)
     L.append("PRIMARY ENDPOINT — final-third mean fitness difference")
     L.append("  bootstrap 95% CI over environments, 10,000 resamples")
     for k, v in a["primary"].items():
