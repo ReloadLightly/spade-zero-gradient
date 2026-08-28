@@ -139,3 +139,16 @@ round 1 already done, skipping
 round 2 already done, skipping
 round 3 already done, skipping
 === C2 round 4 try 1/6 (seed 2004) start 03:15:16 ===
+mutated S3 -> S5
+{
+  "condition": "C2",
+  "round": 4,
+  "strategy": "S3",
+  "fitness": 0.1005,
+  "valid": "6/6",
+  "learnable_fraction": 0.5,
+  "backend_calls": 143
+}
+clean: C2 round 4 has no infrastructure losses
+=== C2 round 4 done 05:38:54 ===
+=== C2 round 5 try 1/6 (seed 2005) start 05:38:54 ===
